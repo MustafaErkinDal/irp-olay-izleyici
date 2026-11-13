@@ -27,6 +27,8 @@ async function main(){
  }
  async function bulutGiris(kisi,pin){const response=await fetch('/bulut/giris',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({kisi,pin}),cache:'no-store'});if(!response.ok)throw new Error('Giriş yapılamadı.');return response.json();}
  async function login(){
+  // GitHub sunum kopyası: girişsiz, salt okunur akış (olay_akisi_acik).
+  if(config.acik_izleyici){expires=Infinity;return;}
   if(config.t32_cloud||config.yerel_test){
    if(session?.refresh_token){try{session=await request('/auth/v1/token?grant_type=refresh_token',{refresh_token:session.refresh_token},false);expires=Date.now()+(session.expires_in??3600)*1000;return;}catch{session=null;}}
    await new Promise(resolve=>{
@@ -42,7 +44,7 @@ async function main(){
   document.querySelector('#event-rows').innerHTML=eventTable(rows,reader.newIds);
  }
  async function poll(){try{if(!paused){if(Date.now()>expires-60000)await login();await reader.read();render();error.textContent='';showStatus('Canlı Bağlantı',true);}}catch(e){showStatus('Yeniden Bağlanıyor',false);error.textContent=e.message;}finally{setTimeout(poll,1500);}}
- async function connect(){try{config=validateConfig(await loadSharedConfig());await login();reader=new EventReader((name,g)=>request('/rest/v1/rpc/'+name,g));await reader.read();showStatus('Canlı Bağlantı',true);void poll();}catch(e){showStatus('Yeniden Bağlanıyor',false);error.textContent=e.message;setTimeout(connect,3000);}}
+ async function connect(){try{config=validateConfig(await loadSharedConfig());await login();reader=new EventReader((name,g)=>config.acik_izleyici?request('/rest/v1/rpc/olay_akisi_acik',g,false):request('/rest/v1/rpc/'+name,g));await reader.read();showStatus('Canlı Bağlantı',true);void poll();}catch(e){showStatus('Yeniden Bağlanıyor',false);error.textContent=e.message;setTimeout(connect,3000);}}
  void connect();
  document.querySelector('#pause-events').onclick=e=>{paused=!paused;e.target.textContent=paused?'Akışı Sürdür':'Akışı Duraklat';if(paused)showStatus('Duraklatıldı',false);};document.querySelector('#clear-events').onclick=()=>{if(reader){reader.clear();render();}};
 }
